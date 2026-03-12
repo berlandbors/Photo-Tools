@@ -43,6 +43,7 @@
 | 19 | [Пиксель-арт](tools/19-pixel-art/index.html) | Конвертация в пиксельную графику | Color quantization + dithering |
 | 20 | [Коллаж](tools/20-collage/index.html) | Объединение нескольких фото | Multiple image loading |
 | 21 | [Удаление фона по виньетке](tools/21-vignette-background-removal/index.html) | Прозрачный фон за пределами круга/эллипса | Radial mask + alpha channel |
+| 22 | [Умное удаление фона](tools/22-smart-background-removal/index.html) | Интерактивное удаление фона кистями | Flood fill + color clustering |
 
 ## 📖 Как использовать
 
@@ -108,6 +109,8 @@ Photo-Tools/
     ├── 20-collage/
     │   └── index.html
     └── 21-vignette-background-removal/
+        └── index.html
+    └── 22-smart-background-removal/
         └── index.html
 ```
 
