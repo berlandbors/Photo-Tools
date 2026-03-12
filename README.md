@@ -44,6 +44,7 @@
 | 20 | [Коллаж](tools/20-collage/index.html) | Объединение нескольких фото | Multiple image loading |
 | 21 | [Удаление фона по виньетке](tools/21-vignette-background-removal/index.html) | Прозрачный фон за пределами круга/эллипса | Radial mask + alpha channel |
 | 22 | [Умное удаление фона](tools/22-smart-background-removal/index.html) | Интерактивное удаление фона кистями | Flood fill + color clustering |
+| 23 | [Слои](tools/23-layers/index.html) | Работа с несколькими изображениями как со слоями | Canvas API + Composite operations |
 
 ## 📖 Как использовать
 
@@ -111,6 +112,8 @@ Photo-Tools/
     └── 21-vignette-background-removal/
         └── index.html
     └── 22-smart-background-removal/
+        └── index.html
+    └── 23-layers/
         └── index.html
 ```
 

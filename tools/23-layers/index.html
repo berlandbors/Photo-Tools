@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Слои — Photo Tools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f4f6fb;
+      --surface: #ffffff;
+      --primary: #5b6ef5;
+      --primary-dark: #3e54e8;
+      --text: #1e2340;
+      --muted: #6b7280;
+      --border: #e5e7ef;
+      --radius: 16px;
+      --shadow: 0 4px 24px rgba(91,110,245,.12);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .back-link {
+      text-decoration: none;
+      color: var(--primary);
+      font-size: .9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity .15s;
+    }
+    .back-link:hover { opacity: .7; }
+    .topbar-title { font-size: .95rem; font-weight: 600; color: var(--muted); }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #1e2340 0%, #5b6ef5 50%, #8b5cf6 100%);
+      color: #fff;
+      padding: 36px 24px 32px;
+      text-align: center;
+    }
+    .hero-icon { font-size: 3rem; line-height: 1; }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; margin-top: 10px; }
+    .hero p { margin-top: 8px; opacity: .85; font-size: .97rem; max-width: 560px; margin-inline: auto; }
+
+    /* ── MAIN LAYOUT ── */
+    main {
+      flex: 1;
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 24px 64px;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 860px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: .78rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    /* ── LEFT PANEL ── */
+    .left-panel { display: flex; flex-direction: column; gap: 16px; }
+
+    /* Add layer button */
+    .add-layer-area {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+    .add-layer-area:hover, .add-layer-area.drag-over {
+      border-color: var(--primary);
+      background: #f0f2ff;
+    }
+    .add-layer-area input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .add-layer-area .icon { font-size: 2rem; }
+    .add-layer-area p { font-size: .85rem; color: var(--muted); margin-top: 6px; }
+    .add-layer-area strong { color: var(--primary); }
+
+    /* Layer list */
+    #layerList { display: flex; flex-direction: column; gap: 8px; }
+    .layer-item {
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color .2s, box-shadow .2s;
+      background: var(--surface);
+    }
+    .layer-item.active {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(91,110,245,.15);
+    }
+    .layer-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .layer-thumb {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+      background: repeating-conic-gradient(#e5e7ef 0% 25%, #fff 0% 50%) 0 0 / 10px 10px;
+    }
+    .layer-info { flex: 1; min-width: 0; }
+    .layer-name {
+      font-size: .85rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .layer-meta { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+
+    /* Eye button */
+    .eye-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 4px;
+      border-radius: 6px;
+      transition: background .15s;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .eye-btn:hover { background: var(--bg); }
+    .eye-btn.hidden { opacity: .35; }
+
+    /* Layer controls (expanded) */
+    .layer-controls {
+      padding: 0 12px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .ctrl-label {
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--muted);
+      min-width: 72px;
+      flex-shrink: 0;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      flex: 1;
+      height: 5px;
+      background: var(--border);
+      border-radius: 100px;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 17px; height: 17px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: 2px solid #fff;
+      box-shadow: 0 2px 5px rgba(91,110,245,.4);
+      cursor: pointer;
+      transition: transform .15s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    input[type="range"]::-moz-range-thumb {
+      width: 17px; height: 17px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: 2px solid #fff;
+      cursor: pointer;
+    }
+    .value-badge {
+      min-width: 38px;
+      text-align: center;
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--primary);
+      background: #eef0ff;
+      border-radius: 6px;
+      padding: 2px 6px;
+      flex-shrink: 0;
+    }
+
+    select {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-size: .82rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      cursor: pointer;
+      outline: none;
+      transition: border-color .2s;
+    }
+    select:focus { border-color: var(--primary); }
+
+    .num-input {
+      width: 60px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: .82rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      transition: border-color .2s;
+      text-align: center;
+    }
+    .num-input:focus { border-color: var(--primary); }
+
+    /* Layer actions row */
+    .layer-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .act-btn {
+      flex: 1;
+      min-width: 0;
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: .75rem;
+      font-weight: 600;
+      font-family: inherit;
+      background: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .act-btn:hover { background: #eef0ff; border-color: var(--primary); color: var(--primary); }
+    .act-btn.danger:hover { background: #fff0f0; border-color: #ef4444; color: #ef4444; }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel { display: flex; flex-direction: column; gap: 16px; }
+
+    /* Canvas wrap with checkerboard */
+    .canvas-wrap {
+      background: repeating-conic-gradient(#e5e7ef 0% 25%, #fff 0% 50%) 0 0 / 20px 20px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      position: relative;
+    }
+    .canvas-placeholder {
+      color: var(--muted);
+      font-size: .9rem;
+      padding: 60px 20px;
+      text-align: center;
+    }
+    .canvas-placeholder .big-icon { font-size: 3rem; display: block; margin-bottom: 12px; }
+    #mainCanvas {
+      max-width: 100%;
+      max-height: 70vh;
+      display: block;
+      border-radius: 4px;
+      cursor: crosshair;
+    }
+
+    /* Export buttons row */
+    .export-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      font-size: .9rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-secondary {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    /* Canvas info bar */
+    .canvas-info {
+      font-size: .8rem;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    /* Drag indicator on canvas */
+    #mainCanvas.dragging-layer { cursor: grabbing; }
+
+    /* Empty state */
+    .empty-hint {
+      text-align: center;
+      padding: 20px;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <a href="../../index.html" class="back-link">← Назад</a>
+  <span class="topbar-title">Photo Tools</span>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-icon">🗂️</div>
+  <h1>Слои</h1>
+  <p>Работа с несколькими изображениями как со слоями — режимы наложения, прозрачность, позиционирование</p>
+</div>
+
+<!-- MAIN -->
+<main>
+  <!-- LEFT: Layers Panel -->
+  <div class="left-panel">
+    <!-- Add layer -->
+    <div class="card">
+      <div class="card-title">Добавить слой</div>
+      <div class="add-layer-area" id="addLayerArea">
+        <input type="file" id="fileInput" accept="image/*" multiple />
+        <div class="icon">🖼️</div>
+        <p><strong>Нажмите</strong> или перетащите изображения сюда</p>
+        <p>PNG, JPG, WebP — можно несколько</p>
+      </div>
+    </div>
+
+    <!-- Layer list -->
+    <div class="card">
+      <div class="card-title">Список слоёв</div>
+      <div id="layerList">
+        <div class="empty-hint">Добавьте изображения, чтобы начать работу со слоями</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Canvas + Export -->
+  <div class="right-panel">
+    <div class="card">
+      <div class="card-title">Предпросмотр</div>
+      <div class="canvas-wrap" id="canvasWrap">
+        <div class="canvas-placeholder" id="canvasPlaceholder">
+          <span class="big-icon">🗂️</span>
+          Загрузите изображения, чтобы увидеть результат
+        </div>
+        <canvas id="mainCanvas" style="display:none;"></canvas>
+      </div>
+      <div class="canvas-info" id="canvasInfo" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Экспорт</div>
+      <div class="export-row">
+        <button class="btn btn-primary" id="downloadBtn">⬇ Скачать PNG</button>
+        <button class="btn btn-secondary" id="clearBtn">🗑 Очистить все</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+/* ════════════════════════════════════════════════
+   LAYER CLASS
+   ════════════════════════════════════════════════ */
+let layerIdCounter = 0;
+
+class Layer {
+  constructor(img, name) {
+    this.id = ++layerIdCounter;
+    this.img = img;          // HTMLImageElement
+    this.name = name;
+    this.visible = true;
+    this.opacity = 100;      // 0-100
+    this.blendMode = 'source-over';
+    this.scale = 100;        // 50-200
+    this.x = 0;              // offset from canvas center (px)
+    this.y = 0;
+    this.thumb = null;       // thumbnail data URL
+  }
+}
+
+/* ════════════════════════════════════════════════
+   STATE
+   ════════════════════════════════════════════════ */
+let layers = [];          // index 0 = bottom, last = top
+let activeLayerId = null;
+
+/* canvas drag state */
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let dragLayerStartX = 0;
+let dragLayerStartY = 0;
+
+/* ════════════════════════════════════════════════
+   DOM REFS
+   ════════════════════════════════════════════════ */
+const canvas      = document.getElementById('mainCanvas');
+const ctx         = canvas.getContext('2d');
+const layerList   = document.getElementById('layerList');
+const placeholder = document.getElementById('canvasPlaceholder');
+const canvasInfo  = document.getElementById('canvasInfo');
+const fileInput   = document.getElementById('fileInput');
+const addArea     = document.getElementById('addLayerArea');
+const downloadBtn = document.getElementById('downloadBtn');
+const clearBtn    = document.getElementById('clearBtn');
+
+/* ════════════════════════════════════════════════
+   BLEND MODES
+   ════════════════════════════════════════════════ */
+const BLEND_MODES = [
+  { value: 'source-over', label: 'Normal' },
+  { value: 'multiply',    label: 'Multiply' },
+  { value: 'screen',      label: 'Screen' },
+  { value: 'overlay',     label: 'Overlay' },
+  { value: 'darken',      label: 'Darken' },
+  { value: 'lighten',     label: 'Lighten' },
+  { value: 'color-dodge', label: 'Color Dodge' },
+  { value: 'color-burn',  label: 'Color Burn' },
+  { value: 'hard-light',  label: 'Hard Light' },
+  { value: 'soft-light',  label: 'Soft Light' },
+  { value: 'difference',  label: 'Difference' },
+  { value: 'exclusion',   label: 'Exclusion' },
+];
+
+/* ════════════════════════════════════════════════
+   FILE LOADING
+   ════════════════════════════════════════════════ */
+function loadFiles(files) {
+  Array.from(files).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const layer = new Layer(img, file.name);
+        makeThumbnail(layer);
+        layers.push(layer);
+        activeLayerId = layer.id;
+        updateCanvasSize();
+        renderAll();
+        renderLayerList();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function makeThumbnail(layer) {
+  const tc = document.createElement('canvas');
+  const size = 80;
+  tc.width = size; tc.height = size;
+  const tx = tc.getContext('2d');
+  const ratio = Math.min(size / layer.img.width, size / layer.img.height);
+  const w = layer.img.width * ratio;
+  const h = layer.img.height * ratio;
+  tx.drawImage(layer.img, (size - w) / 2, (size - h) / 2, w, h);
+  layer.thumb = tc.toDataURL();
+}
+
+/* ════════════════════════════════════════════════
+   CANVAS SIZE
+   ════════════════════════════════════════════════ */
+function updateCanvasSize() {
+  if (!layers.length) return;
+  let maxW = 0, maxH = 0;
+  layers.forEach(l => {
+    maxW = Math.max(maxW, l.img.width);
+    maxH = Math.max(maxH, l.img.height);
+  });
+  canvas.width  = maxW;
+  canvas.height = maxH;
+}
+
+/* ════════════════════════════════════════════════
+   RENDER
+   ════════════════════════════════════════════════ */
+function renderAll() {
+  if (!layers.length) {
+    canvas.style.display = 'none';
+    placeholder.style.display = '';
+    canvasInfo.textContent = '';
+    return;
+  }
+
+  canvas.style.display = 'block';
+  placeholder.style.display = 'none';
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw bottom to top
+  layers.forEach(layer => {
+    if (!layer.visible) return;
+
+    ctx.save();
+    ctx.globalAlpha = layer.opacity / 100;
+    ctx.globalCompositeOperation = layer.blendMode;
+
+    const scaleFactor = layer.scale / 100;
+    const dw = layer.img.width  * scaleFactor;
+    const dh = layer.img.height * scaleFactor;
+    // Center origin
+    const cx = (canvas.width  - dw) / 2 + layer.x;
+    const cy = (canvas.height - dh) / 2 + layer.y;
+
+    ctx.drawImage(layer.img, cx, cy, dw, dh);
+    ctx.restore();
+  });
+
+  // Active layer border on canvas
+  const active = layers.find(l => l.id === activeLayerId);
+  if (active && active.visible) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    const scaleFactor = active.scale / 100;
+    const dw = active.img.width  * scaleFactor;
+    const dh = active.img.height * scaleFactor;
+    const cx = (canvas.width  - dw) / 2 + active.x;
+    const cy = (canvas.height - dh) / 2 + active.y;
+    ctx.strokeStyle = '#5b6ef5';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(cx, cy, dw, dh);
+    ctx.restore();
+  }
+
+  canvasInfo.textContent = `${canvas.width} × ${canvas.height} px · ${layers.length} слой(ёв)`;
+}
+
+/* ════════════════════════════════════════════════
+   LAYER LIST UI
+   ════════════════════════════════════════════════ */
+function renderLayerList() {
+  layerList.innerHTML = '';
+
+  if (!layers.length) {
+    layerList.innerHTML = '<div class="empty-hint">Добавьте изображения, чтобы начать работу со слоями</div>';
+    return;
+  }
+
+  // Render top-to-bottom (reverse for display: top layer first)
+  [...layers].reverse().forEach((layer) => {
+    const item = document.createElement('div');
+    item.className = 'layer-item' + (layer.id === activeLayerId ? ' active' : '');
+    item.dataset.id = layer.id;
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'layer-header';
+    header.innerHTML = `
+      <img class="layer-thumb" src="${layer.thumb}" alt="">
+      <div class="layer-info">
+        <div class="layer-name" title="${escHtml(layer.name)}">${escHtml(layer.name)}</div>
+        <div class="layer-meta">${layer.img.width}×${layer.img.height}px · ${getBlendModeLabel(layer.blendMode)} · ${layer.opacity}%</div>
+      </div>
+      <button class="eye-btn ${layer.visible ? '' : 'hidden'}" title="Видимость">${layer.visible ? '👁️' : '🙈'}</button>
+    `;
+
+    // Eye toggle
+    header.querySelector('.eye-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      layer.visible = !layer.visible;
+      renderAll();
+      renderLayerList();
+    });
+
+    // Select active on header click
+    header.addEventListener('click', () => {
+      activeLayerId = layer.id;
+      renderAll();
+      renderLayerList();
+    });
+
+    // Controls
+    const controls = document.createElement('div');
+    controls.className = 'layer-controls';
+
+    // Opacity
+    controls.appendChild(makeSliderRow('Непрозрачность', 'opacity', layer, 0, 100, 1, '%', () => {
+      renderAll();
+      updateLayerMeta(layer, item);
+    }));
+
+    // Scale
+    controls.appendChild(makeSliderRow('Масштаб', 'scale', layer, 50, 200, 1, '%', () => {
+      renderAll();
+      updateLayerMeta(layer, item);
+    }));
+
+    // Blend mode
+    const bmRow = document.createElement('div');
+    bmRow.className = 'ctrl-row';
+    bmRow.innerHTML = `<span class="ctrl-label">Режим</span>`;
+    const sel = document.createElement('select');
+    BLEND_MODES.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.value;
+      opt.textContent = m.label;
+      if (m.value === layer.blendMode) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', () => {
+      layer.blendMode = sel.value;
+      renderAll();
+      updateLayerMeta(layer, item);
+    });
+    bmRow.appendChild(sel);
+    controls.appendChild(bmRow);
+
+    // X / Y position
+    const posRow = document.createElement('div');
+    posRow.className = 'ctrl-row';
+    posRow.innerHTML = `<span class="ctrl-label">Позиция</span>`;
+    const xIn = makeNumInput(layer.x, -2000, 2000, v => { layer.x = v; renderAll(); });
+    const yIn = makeNumInput(layer.y, -2000, 2000, v => { layer.y = v; renderAll(); });
+    xIn.title = 'X (px)';
+    yIn.title = 'Y (px)';
+    const posLabels = document.createElement('div');
+    posLabels.style.cssText = 'display:flex;gap:6px;align-items:center;flex:1';
+    const xLabel = document.createElement('span');
+    xLabel.style.cssText = 'font-size:.75rem;color:var(--muted)';
+    xLabel.textContent = 'X';
+    const yLabel = document.createElement('span');
+    yLabel.style.cssText = 'font-size:.75rem;color:var(--muted)';
+    yLabel.textContent = 'Y';
+    posLabels.appendChild(xLabel);
+    posLabels.appendChild(xIn);
+    posLabels.appendChild(yLabel);
+    posLabels.appendChild(yIn);
+    posRow.appendChild(posLabels);
+    controls.appendChild(posRow);
+
+    // Actions
+    const actRow = document.createElement('div');
+    actRow.className = 'layer-actions';
+    const idx = layers.findIndex(l => l.id === layer.id);
+    const total = layers.length;
+
+    const upBtn   = makeActBtn('↑ Вверх',      () => moveLayer(layer.id, 1));
+    const downBtn = makeActBtn('↓ Вниз',        () => moveLayer(layer.id, -1));
+    const dupBtn  = makeActBtn('⧉ Дублировать', () => duplicateLayer(layer.id));
+    const delBtn  = makeActBtn('🗑 Удалить',    () => deleteLayer(layer.id));
+    delBtn.classList.add('danger');
+
+    if (idx === total - 1) upBtn.disabled = true;
+    if (idx === 0)         downBtn.disabled = true;
+
+    actRow.appendChild(upBtn);
+    actRow.appendChild(downBtn);
+    actRow.appendChild(dupBtn);
+    actRow.appendChild(delBtn);
+    controls.appendChild(actRow);
+
+    item.appendChild(header);
+    item.appendChild(controls);
+    layerList.appendChild(item);
+  });
+}
+
+function updateLayerMeta(layer, item) {
+  const meta = item.querySelector('.layer-meta');
+  if (meta) {
+    meta.textContent = `${layer.img.width}×${layer.img.height}px · ${getBlendModeLabel(layer.blendMode)} · ${layer.opacity}%`;
+  }
+}
+
+/* ── helper builders ── */
+function makeSliderRow(label, prop, layer, min, max, step, unit, onChange) {
+  const row = document.createElement('div');
+  row.className = 'ctrl-row';
+  row.innerHTML = `<span class="ctrl-label">${label}</span>`;
+
+  const slider = document.createElement('input');
+  slider.type = 'range';
+  slider.min = min; slider.max = max; slider.step = step;
+  slider.value = layer[prop];
+
+  const badge = document.createElement('span');
+  badge.className = 'value-badge';
+  badge.textContent = layer[prop] + unit;
+
+  slider.addEventListener('input', () => {
+    layer[prop] = Number(slider.value);
+    badge.textContent = layer[prop] + unit;
+    if (onChange) onChange();
+  });
+
+  row.appendChild(slider);
+  row.appendChild(badge);
+  return row;
+}
+
+function makeNumInput(val, min, max, onChange) {
+  const inp = document.createElement('input');
+  inp.type = 'number';
+  inp.className = 'num-input';
+  inp.value = val;
+  inp.min = min; inp.max = max;
+  inp.addEventListener('change', () => {
+    const v = Math.max(min, Math.min(max, Number(inp.value)));
+    inp.value = v;
+    onChange(v);
+  });
+  return inp;
+}
+
+function makeActBtn(text, onClick) {
+  const btn = document.createElement('button');
+  btn.className = 'act-btn';
+  btn.textContent = text;
+  btn.addEventListener('click', onClick);
+  return btn;
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function getBlendModeLabel(blendMode) {
+  return BLEND_MODES.find(m => m.value === blendMode)?.label || 'Normal';
+}
+
+/* ════════════════════════════════════════════════
+   LAYER OPERATIONS
+   ════════════════════════════════════════════════ */
+function moveLayer(id, dir) {
+  const idx = layers.findIndex(l => l.id === id);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= layers.length) return;
+  [layers[idx], layers[newIdx]] = [layers[newIdx], layers[idx]];
+  renderAll();
+  renderLayerList();
+}
+
+function deleteLayer(id) {
+  layers = layers.filter(l => l.id !== id);
+  if (activeLayerId === id) activeLayerId = layers.at(-1)?.id ?? null;
+  if (!layers.length) {
+    canvas.width = 0; canvas.height = 0;
+    canvas.style.display = 'none';
+    placeholder.style.display = '';
+    canvasInfo.textContent = '';
+  } else {
+    renderAll();
+  }
+  renderLayerList();
+}
+
+function duplicateLayer(id) {
+  const src = layers.find(l => l.id === id);
+  if (!src) return;
+  const dup = new Layer(src.img, src.name + ' (копия)');
+  dup.visible   = src.visible;
+  dup.opacity   = src.opacity;
+  dup.blendMode = src.blendMode;
+  dup.scale     = src.scale;
+  dup.x         = src.x + 10;
+  dup.y         = src.y + 10;
+  dup.thumb     = src.thumb;
+  const idx = layers.findIndex(l => l.id === id);
+  layers.splice(idx + 1, 0, dup);
+  activeLayerId = dup.id;
+  renderAll();
+  renderLayerList();
+}
+
+/* ════════════════════════════════════════════════
+   CANVAS DRAG (move active layer)
+   ════════════════════════════════════════════════ */
+canvas.addEventListener('mousedown', e => {
+  const active = layers.find(l => l.id === activeLayerId);
+  if (!active) return;
+  isDragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  dragLayerStartX = active.x;
+  dragLayerStartY = active.y;
+  canvas.classList.add('dragging-layer');
+  e.preventDefault();
+});
+
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const active = layers.find(l => l.id === activeLayerId);
+  if (!active) return;
+
+  // Scale mouse delta by canvas-to-display ratio
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  active.x = dragLayerStartX + (e.clientX - dragStartX) * scaleX;
+  active.y = dragLayerStartY + (e.clientY - dragStartY) * scaleY;
+
+  renderAll();
+  // Live-update position inputs in panel
+  syncPositionInputs(active);
+});
+
+window.addEventListener('mouseup', () => {
+  if (isDragging) {
+    isDragging = false;
+    canvas.classList.remove('dragging-layer');
+    renderLayerList();   // update meta text
+  }
+});
+
+// Touch support
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1) return;
+  const t = e.touches[0];
+  const active = layers.find(l => l.id === activeLayerId);
+  if (!active) return;
+  isDragging = true;
+  dragStartX = t.clientX;
+  dragStartY = t.clientY;
+  dragLayerStartX = active.x;
+  dragLayerStartY = active.y;
+  e.preventDefault();
+}, { passive: false });
+
+window.addEventListener('touchmove', e => {
+  if (!isDragging || e.touches.length !== 1) return;
+  const t = e.touches[0];
+  const active = layers.find(l => l.id === activeLayerId);
+  if (!active) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  active.x = dragLayerStartX + (t.clientX - dragStartX) * scaleX;
+  active.y = dragLayerStartY + (t.clientY - dragStartY) * scaleY;
+  renderAll();
+  syncPositionInputs(active);
+}, { passive: false });
+
+window.addEventListener('touchend', () => {
+  if (isDragging) {
+    isDragging = false;
+    renderLayerList();
+  }
+});
+
+function syncPositionInputs(layer) {
+  const item = layerList.querySelector(`[data-id="${layer.id}"]`);
+  if (!item) return;
+  const inputs = item.querySelectorAll('input[type="number"]');
+  if (inputs[0]) inputs[0].value = Math.round(layer.x);
+  if (inputs[1]) inputs[1].value = Math.round(layer.y);
+}
+
+/* ════════════════════════════════════════════════
+   FILE INPUT & DRAG-DROP (add layer area)
+   ════════════════════════════════════════════════ */
+fileInput.addEventListener('change', e => {
+  loadFiles(e.target.files);
+  fileInput.value = '';
+});
+
+addArea.addEventListener('dragover', e => {
+  e.preventDefault();
+  addArea.classList.add('drag-over');
+});
+addArea.addEventListener('dragleave', () => addArea.classList.remove('drag-over'));
+addArea.addEventListener('drop', e => {
+  e.preventDefault();
+  addArea.classList.remove('drag-over');
+  loadFiles(e.dataTransfer.files);
+});
+
+/* Also allow dropping images anywhere on the page */
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  if (e.dataTransfer.files.length) loadFiles(e.dataTransfer.files);
+});
+
+/* ════════════════════════════════════════════════
+   EXPORT
+   ════════════════════════════════════════════════ */
+downloadBtn.addEventListener('click', () => {
+  if (!layers.length) return;
+  const link = document.createElement('a');
+  link.download = 'layers-composite.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+
+clearBtn.addEventListener('click', () => {
+  if (!layers.length) return;
+  if (!confirm('Удалить все слои?')) return;
+  layers = [];
+  activeLayerId = null;
+  canvas.width = 0; canvas.height = 0;
+  canvas.style.display = 'none';
+  placeholder.style.display = '';
+  canvasInfo.textContent = '';
+  renderLayerList();
+});
+</script>
+</body>
+</html>
