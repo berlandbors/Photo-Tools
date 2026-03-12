@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Изменение размера — Photo Tools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f4f6fb;
+      --surface: #ffffff;
+      --primary: #5b6ef5;
+      --primary-dark: #3e54e8;
+      --text: #1e2340;
+      --muted: #6b7280;
+      --border: #e5e7ef;
+      --radius: 16px;
+      --shadow: 0 4px 24px rgba(91,110,245,.12);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .back-link {
+      text-decoration: none;
+      color: var(--primary);
+      font-size: .9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity .15s;
+    }
+    .back-link:hover { opacity: .7; }
+    .topbar-title {
+      font-size: .95rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+      color: #fff;
+      padding: 36px 24px 32px;
+      text-align: center;
+    }
+    .hero-icon { font-size: 3rem; line-height: 1; }
+    .hero h1 {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 800;
+      margin-top: 10px;
+    }
+    .hero p {
+      margin-top: 8px;
+      opacity: .85;
+      font-size: .97rem;
+      max-width: 480px;
+      margin-inline: auto;
+    }
+
+    main {
+      flex: 1;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .card h2 {
+      font-size: .78rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+    .upload-area:hover, .upload-area.drag-over {
+      border-color: var(--primary);
+      background: #f0f2ff;
+    }
+    .upload-area input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .upload-icon { font-size: 2.5rem; }
+    .upload-area h3 { font-size: 1rem; font-weight: 700; margin-top: 10px; }
+    .upload-area p { font-size: .85rem; color: var(--muted); margin-top: 4px; }
+
+    .canvas-wrap {
+      background: repeating-conic-gradient(#e5e7ef 0% 25%, #fff 0% 50%) 0 0 / 20px 20px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+    }
+    canvas {
+      max-width: 100%;
+      max-height: 60vh;
+      display: block;
+      border-radius: 8px;
+    }
+    .canvas-placeholder {
+      color: var(--muted);
+      font-size: .9rem;
+      padding: 40px;
+      text-align: center;
+    }
+
+    /* Resize inputs */
+    .resize-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 480px) { .resize-grid { grid-template-columns: 1fr; } }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .input-group label {
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .input-group input[type="number"] {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: .95rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s;
+      width: 100%;
+    }
+    .input-group input[type="number"]:focus { border-color: var(--primary); }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+    .checkbox-row label {
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .preset-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .btn-preset {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: .85rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      transition: border-color .15s, color .15s;
+    }
+    .btn-preset:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-preset:disabled { opacity: .4; pointer-events: none; }
+
+    .orig-info {
+      font-size: .85rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .orig-info span { color: var(--text); font-weight: 700; }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: transform .15s, box-shadow .15s, opacity .15s;
+      text-decoration: none;
+    }
+    .btn:disabled { opacity: .4; pointer-events: none; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(91,110,245,.35);
+    }
+    .btn-primary:hover { background: var(--primary-dark); box-shadow: 0 6px 16px rgba(91,110,245,.4); }
+    .btn-ghost {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+
+    .info-box {
+      background: #eff2ff;
+      border: 1px solid #c7d0fe;
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: .85rem;
+      color: #3730a3;
+      line-height: 1.6;
+    }
+    .info-box code {
+      background: #c7d0fe;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="topbar">
+  <a class="back-link" href="../../index.html">← Все инструменты</a>
+  <span style="color:var(--border)">|</span>
+  <span class="topbar-title">11 — Изменение размера</span>
+</nav>
+
+<div class="hero">
+  <div class="hero-icon">📐</div>
+  <h1>Изменение размера</h1>
+  <p>Масштабирование изображения с сохранением пропорций или произвольными размерами</p>
+</div>
+
+<main>
+
+  <!-- Upload -->
+  <div class="card">
+    <h2>📂 Загрузка изображения</h2>
+    <div class="upload-area" id="uploadArea">
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" />
+      <div class="upload-icon">🖼️</div>
+      <h3>Нажмите или перетащите изображение</h3>
+      <p>Поддерживаются форматы JPG, PNG, WebP</p>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="card">
+    <h2>🖼 Результат</h2>
+    <div class="canvas-wrap" id="canvasWrap">
+      <div class="canvas-placeholder" id="placeholder">Загрузите изображение, чтобы увидеть результат</div>
+      <canvas id="canvas" style="display:none"></canvas>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="card">
+    <h2>🎛 Управление</h2>
+
+    <div class="orig-info" id="origInfo" style="display:none">
+      Оригинал: <span id="origSize">—</span>
+    </div>
+
+    <div class="resize-grid">
+      <div class="input-group">
+        <label for="widthInput">Ширина (px)</label>
+        <input type="number" id="widthInput" min="1" max="10000" placeholder="Ширина" disabled />
+      </div>
+      <div class="input-group">
+        <label for="heightInput">Высота (px)</label>
+        <input type="number" id="heightInput" min="1" max="10000" placeholder="Высота" disabled />
+      </div>
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="aspectLock" checked />
+      <label for="aspectLock">🔒 Сохранять пропорции</label>
+    </div>
+
+    <p style="font-size:.85rem;font-weight:700;color:var(--muted);margin-bottom:10px">Быстрые пресеты:</p>
+    <div class="preset-row">
+      <button class="btn-preset" data-scale="0.5"  disabled>50%</button>
+      <button class="btn-preset" data-scale="0.75" disabled>75%</button>
+      <button class="btn-preset" data-scale="1.5"  disabled>150%</button>
+      <button class="btn-preset" data-scale="2"    disabled>200%</button>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="applyBtn" disabled>✅ Применить</button>
+      <button class="btn btn-ghost"   id="resetBtn" disabled>↺ Сброс</button>
+      <button class="btn btn-ghost"   id="downloadBtn" disabled>⬇️ Скачать</button>
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-box">
+    💡 <strong>Как работает:</strong> новый Canvas создаётся с заданными размерами, затем исходное
+    изображение масштабируется с помощью <code>ctx.drawImage(img, 0, 0, newW, newH)</code>.
+    При включённом флажке «Сохранять пропорции» изменение одной стороны автоматически пересчитывает другую.
+  </div>
+
+</main>
+
+<script>
+  const fileInput  = document.getElementById('fileInput');
+  const uploadArea = document.getElementById('uploadArea');
+  const canvas     = document.getElementById('canvas');
+  const placeholder = document.getElementById('placeholder');
+  const widthInput = document.getElementById('widthInput');
+  const heightInput = document.getElementById('heightInput');
+  const aspectLock = document.getElementById('aspectLock');
+  const applyBtn   = document.getElementById('applyBtn');
+  const resetBtn   = document.getElementById('resetBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const origInfo   = document.getElementById('origInfo');
+  const origSize   = document.getElementById('origSize');
+  const ctx        = canvas.getContext('2d');
+  const presets    = document.querySelectorAll('.btn-preset');
+
+  let originalImage = null;
+  let aspectRatio   = 1;
+  let updating      = false; // prevent input feedback loop
+
+  uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+  uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) loadImage(file);
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) loadImage(fileInput.files[0]);
+  });
+
+  function loadImage(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        originalImage = img;
+        aspectRatio = img.width / img.height;
+        widthInput.value  = img.width;
+        heightInput.value = img.height;
+        widthInput.disabled  = false;
+        heightInput.disabled = false;
+        applyBtn.disabled    = false;
+        resetBtn.disabled    = false;
+        presets.forEach(b => b.disabled = false);
+        origInfo.style.display = 'block';
+        origSize.textContent = `${img.width} × ${img.height} пикс.`;
+        renderCanvas(img.width, img.height);
+        canvas.style.display      = 'block';
+        placeholder.style.display = 'none';
+        downloadBtn.disabled      = false;
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function renderCanvas(w, h) {
+    canvas.width  = w;
+    canvas.height = h;
+    ctx.drawImage(originalImage, 0, 0, w, h);
+  }
+
+  widthInput.addEventListener('input', () => {
+    if (updating) return;
+    if (aspectLock.checked) {
+      updating = true;
+      const w = parseInt(widthInput.value, 10) || 1;
+      heightInput.value = Math.round(w / aspectRatio);
+      updating = false;
+    }
+  });
+
+  heightInput.addEventListener('input', () => {
+    if (updating) return;
+    if (aspectLock.checked) {
+      updating = true;
+      const h = parseInt(heightInput.value, 10) || 1;
+      widthInput.value = Math.round(h * aspectRatio);
+      updating = false;
+    }
+  });
+
+  presets.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!originalImage) return;
+      const s = parseFloat(btn.dataset.scale);
+      widthInput.value  = Math.round(originalImage.width  * s);
+      heightInput.value = Math.round(originalImage.height * s);
+    });
+  });
+
+  applyBtn.addEventListener('click', () => {
+    if (!originalImage) return;
+    const w = Math.max(1, parseInt(widthInput.value, 10)  || originalImage.width);
+    const h = Math.max(1, parseInt(heightInput.value, 10) || originalImage.height);
+    renderCanvas(w, h);
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (!originalImage) return;
+    widthInput.value  = originalImage.width;
+    heightInput.value = originalImage.height;
+    renderCanvas(originalImage.width, originalImage.height);
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = `resize-${canvas.width}x${canvas.height}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+</script>
+</body>
+</html>
