@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Яркость — Photo Tools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f4f6fb;
+      --surface: #ffffff;
+      --primary: #5b6ef5;
+      --primary-dark: #3e54e8;
+      --text: #1e2340;
+      --muted: #6b7280;
+      --border: #e5e7ef;
+      --radius: 16px;
+      --shadow: 0 4px 24px rgba(91,110,245,.12);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .back-link {
+      text-decoration: none;
+      color: var(--primary);
+      font-size: .9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity .15s;
+    }
+    .back-link:hover { opacity: .7; }
+    .topbar-title {
+      font-size: .95rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+      color: #fff;
+      padding: 36px 24px 32px;
+      text-align: center;
+    }
+    .hero-icon { font-size: 3rem; line-height: 1; }
+    .hero h1 {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 800;
+      margin-top: 10px;
+    }
+    .hero p {
+      margin-top: 8px;
+      opacity: .85;
+      font-size: .97rem;
+      max-width: 480px;
+      margin-inline: auto;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    main {
+      flex: 1;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .card h2 {
+      font-size: .78rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    /* ── UPLOAD ── */
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+    .upload-area:hover, .upload-area.drag-over {
+      border-color: var(--primary);
+      background: #f0f2ff;
+    }
+    .upload-area input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .upload-icon { font-size: 2.5rem; }
+    .upload-area h3 { font-size: 1rem; font-weight: 700; margin-top: 10px; }
+    .upload-area p { font-size: .85rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── CANVAS ── */
+    .canvas-wrap {
+      background: repeating-conic-gradient(#e5e7ef 0% 25%, #fff 0% 50%) 0 0 / 20px 20px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+    }
+    canvas {
+      max-width: 100%;
+      max-height: 60vh;
+      display: block;
+      border-radius: 8px;
+    }
+    .canvas-placeholder {
+      color: var(--muted);
+      font-size: .9rem;
+      padding: 40px;
+      text-align: center;
+    }
+
+    /* ── CONTROLS ── */
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .control-row label {
+      font-size: .9rem;
+      font-weight: 600;
+      min-width: 80px;
+    }
+    .slider-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 200px;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--border);
+      border-radius: 100px;
+      outline: none;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: 2px solid #fff;
+      box-shadow: 0 2px 6px rgba(91,110,245,.4);
+      cursor: pointer;
+      transition: transform .15s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: 2px solid #fff;
+      cursor: pointer;
+    }
+    .value-badge {
+      background: var(--primary);
+      color: #fff;
+      font-size: .8rem;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 100px;
+      min-width: 54px;
+      text-align: center;
+    }
+
+    /* ── BUTTONS ── */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: transform .15s, box-shadow .15s, opacity .15s;
+      text-decoration: none;
+    }
+    .btn:disabled { opacity: .4; pointer-events: none; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(91,110,245,.35);
+    }
+    .btn-primary:hover { background: var(--primary-dark); box-shadow: 0 6px 16px rgba(91,110,245,.4); }
+    .btn-ghost {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* ── INFO ── */
+    .info-box {
+      background: #eff2ff;
+      border: 1px solid #c7d0fe;
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: .85rem;
+      color: #3730a3;
+      line-height: 1.6;
+    }
+    .info-box code {
+      background: #c7d0fe;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="topbar">
+  <a class="back-link" href="../../index.html">← Все инструменты</a>
+  <span style="color:var(--border)">|</span>
+  <span class="topbar-title">01 — Яркость</span>
+</nav>
+
+<div class="hero">
+  <div class="hero-icon">☀️</div>
+  <h1>Яркость</h1>
+  <p>Регулировка яркости изображения с помощью CSS-фильтра <code>brightness()</code></p>
+</div>
+
+<main>
+
+  <!-- Upload -->
+  <div class="card">
+    <h2>📂 Загрузка изображения</h2>
+    <div class="upload-area" id="uploadArea">
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" />
+      <div class="upload-icon">🖼️</div>
+      <h3>Нажмите или перетащите изображение</h3>
+      <p>Поддерживаются форматы JPG, PNG, WebP</p>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="card">
+    <h2>🖼 Результат</h2>
+    <div class="canvas-wrap" id="canvasWrap">
+      <div class="canvas-placeholder" id="placeholder">Загрузите изображение, чтобы увидеть результат</div>
+      <canvas id="canvas" style="display:none"></canvas>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="card">
+    <h2>🎛 Управление</h2>
+    <div class="control-row">
+      <label for="slider">Яркость</label>
+      <div class="slider-wrap">
+        <span style="font-size:.8rem;color:var(--muted)">−100</span>
+        <input type="range" id="slider" min="-100" max="100" value="0" />
+        <span style="font-size:.8rem;color:var(--muted)">+100</span>
+      </div>
+      <div class="value-badge" id="valueBadge">0</div>
+    </div>
+
+    <div class="btn-row" style="margin-top:20px">
+      <button class="btn btn-primary" id="downloadBtn" disabled>⬇️ Скачать</button>
+      <button class="btn btn-ghost" id="resetBtn">↺ Сброс</button>
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-box">
+    💡 <strong>Как работает:</strong> изображение рисуется на Canvas с применением CSS-фильтра
+    <code>brightness(значение%)</code>. Значение 100% — оригинал, меньше — темнее, больше — светлее.
+  </div>
+
+</main>
+
+<script>
+  const fileInput   = document.getElementById('fileInput');
+  const uploadArea  = document.getElementById('uploadArea');
+  const canvas      = document.getElementById('canvas');
+  const placeholder = document.getElementById('placeholder');
+  const slider      = document.getElementById('slider');
+  const valueBadge  = document.getElementById('valueBadge');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const resetBtn    = document.getElementById('resetBtn');
+  const ctx         = canvas.getContext('2d');
+
+  let originalImage = null;
+
+  /* ── drag & drop ── */
+  uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+  uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) loadImage(file);
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) loadImage(fileInput.files[0]);
+  });
+
+  function loadImage(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        originalImage = img;
+        canvas.width  = img.width;
+        canvas.height = img.height;
+        slider.value  = 0;
+        valueBadge.textContent = '0';
+        applyFilter();
+        canvas.style.display   = 'block';
+        placeholder.style.display = 'none';
+        downloadBtn.disabled   = false;
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function applyFilter() {
+    if (!originalImage) return;
+    const val = parseInt(slider.value, 10);
+    // Convert -100..100 range to CSS brightness %: -100 → 0%, 0 → 100%, +100 → 200%
+    const brightnessPercent = 100 + val;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.filter = `brightness(${brightnessPercent}%)`;
+    ctx.drawImage(originalImage, 0, 0);
+    ctx.filter = 'none';
+  }
+
+  slider.addEventListener('input', () => {
+    valueBadge.textContent = slider.value > 0 ? '+' + slider.value : slider.value;
+    applyFilter();
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = 'brightness.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    slider.value = 0;
+    valueBadge.textContent = '0';
+    applyFilter();
+  });
+</script>
+</body>
+</html>
