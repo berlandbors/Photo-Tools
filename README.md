@@ -20,12 +20,16 @@
 | 06 | [Поворот](tools/06-rotate/index.html) | Поворот на 90°/180°/270° или произвольный угол | `ctx.rotate()` |
 | 07 | [Отражение](tools/07-flip/index.html) | Горизонтальное и вертикальное отражение | `ctx.scale()` |
 
-### Средние *(скоро)*
+### Средние
 
-- Размытие по Гауссу
-- Повышение резкости
-- Кадрирование
-- Изменение размера
+| # | Инструмент | Описание | Технология |
+|---|-----------|----------|------------|
+| 08 | [Размытие](tools/08-blur/index.html) | Размытие по Гауссу (0-20px) | `filter: blur()` |
+| 09 | [Резкость](tools/09-sharpen/index.html) | Повышение чёткости изображения | Convolution matrix |
+| 10 | [Кадрирование](tools/10-crop/index.html) | Интерактивная обрезка изображения | Mouse events + Canvas |
+| 11 | [Изменение размера](tools/11-resize/index.html) | Масштабирование с сохранением пропорций | `drawImage()` |
+| 12 | [Насыщенность](tools/12-saturation/index.html) | Регулировка насыщенности цветов (0-200%) | `filter: saturate()` |
+| 13 | [Оттенок](tools/13-hue/index.html) | Сдвиг цветового тона (0-360°) | `filter: hue-rotate()` |
 
 ### Сложные *(скоро)*
 
@@ -68,7 +72,19 @@ Photo-Tools/
     │   └── index.html
     ├── 06-rotate/
     │   └── index.html
-    └── 07-flip/
+    ├── 07-flip/
+    │   └── index.html
+    ├── 08-blur/
+    │   └── index.html
+    ├── 09-sharpen/
+    │   └── index.html
+    ├── 10-crop/
+    │   └── index.html
+    ├── 11-resize/
+    │   └── index.html
+    ├── 12-saturation/
+    │   └── index.html
+    └── 13-hue/
         └── index.html
 ```
 
