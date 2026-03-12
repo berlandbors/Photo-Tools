@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Instagram-фильтры — Photo Tools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f4f6fb;
+      --surface: #ffffff;
+      --primary: #5b6ef5;
+      --primary-dark: #3e54e8;
+      --text: #1e2340;
+      --muted: #6b7280;
+      --border: #e5e7ef;
+      --radius: 16px;
+      --shadow: 0 4px 24px rgba(91,110,245,.12);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .back-link {
+      text-decoration: none;
+      color: var(--primary);
+      font-size: .9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity .15s;
+    }
+    .back-link:hover { opacity: .7; }
+    .topbar-title { font-size: .95rem; font-weight: 600; color: var(--muted); }
+
+    .hero {
+      background: linear-gradient(135deg, #e96c9b 0%, #f7a261 100%);
+      color: #fff;
+      padding: 36px 24px 32px;
+      text-align: center;
+    }
+    .hero-icon { font-size: 3rem; line-height: 1; }
+    .hero h1 {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 800;
+      margin-top: 10px;
+    }
+    .hero p {
+      margin-top: 8px;
+      opacity: .85;
+      font-size: .97rem;
+      max-width: 480px;
+      margin-inline: auto;
+    }
+
+    main {
+      flex: 1;
+      max-width: 960px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .card h2 {
+      font-size: .78rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+    .upload-area:hover, .upload-area.drag-over {
+      border-color: var(--primary);
+      background: #f0f2ff;
+    }
+    .upload-area input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .upload-icon { font-size: 2.5rem; }
+    .upload-area h3 { font-size: 1rem; font-weight: 700; margin-top: 10px; }
+    .upload-area p { font-size: .85rem; color: var(--muted); margin-top: 4px; }
+
+    .canvas-wrap {
+      background: repeating-conic-gradient(#e5e7ef 0% 25%, #fff 0% 50%) 0 0 / 20px 20px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+    }
+    canvas { max-width: 100%; max-height: 60vh; display: block; border-radius: 8px; }
+    .canvas-placeholder { color: var(--muted); font-size: .9rem; padding: 40px; text-align: center; }
+
+    /* Filter gallery */
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 12px;
+    }
+    .filter-btn {
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg);
+      cursor: pointer;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: border-color .2s, transform .15s, box-shadow .15s;
+      font-family: inherit;
+    }
+    .filter-btn:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(91,110,245,.2);
+    }
+    .filter-btn.active {
+      border-color: var(--primary);
+      background: #eff2ff;
+      box-shadow: 0 0 0 3px rgba(91,110,245,.2);
+    }
+    .filter-thumb {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      object-fit: cover;
+      display: block;
+      background: #e5e7ef;
+      overflow: hidden;
+    }
+    .filter-thumb canvas {
+      width: 100%;
+      height: 100%;
+      max-width: unset;
+      max-height: unset;
+      border-radius: 8px;
+    }
+    .filter-name {
+      font-size: .75rem;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+    }
+
+    .btn-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: transform .15s, box-shadow .15s, opacity .15s;
+      text-decoration: none;
+    }
+    .btn:disabled { opacity: .4; pointer-events: none; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(91,110,245,.35); }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-ghost { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+
+    .info-box {
+      background: #eff2ff;
+      border: 1px solid #c7d0fe;
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: .85rem;
+      color: #3730a3;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="topbar">
+  <a class="back-link" href="../../index.html">← Все инструменты</a>
+  <span style="color:var(--border)">|</span>
+  <span class="topbar-title">14 — Instagram-фильтры</span>
+</nav>
+
+<div class="hero">
+  <div class="hero-icon">📷</div>
+  <h1>Instagram-фильтры</h1>
+  <p>10 готовых фильтров в стиле Instagram — выберите и применяйте одним кликом</p>
+</div>
+
+<main>
+
+  <div class="card">
+    <h2>📂 Загрузка изображения</h2>
+    <div class="upload-area" id="uploadArea">
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" />
+      <div class="upload-icon">🖼️</div>
+      <h3>Нажмите или перетащите изображение</h3>
+      <p>Поддерживаются форматы JPG, PNG, WebP</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🖼 Результат</h2>
+    <div class="canvas-wrap" id="canvasWrap">
+      <div class="canvas-placeholder" id="placeholder">Загрузите изображение, чтобы увидеть результат</div>
+      <canvas id="canvas" style="display:none"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🎨 Выберите фильтр</h2>
+    <div class="filter-grid" id="filterGrid"></div>
+    <div class="btn-row" style="margin-top:20px">
+      <button class="btn btn-primary" id="downloadBtn" disabled>⬇️ Скачать</button>
+      <button class="btn btn-ghost" id="resetBtn">↺ Сброс</button>
+    </div>
+  </div>
+
+  <div class="info-box">
+    💡 <strong>Как работает:</strong> каждый фильтр — это комбинация CSS-фильтров (brightness, contrast, saturate, sepia, hue-rotate) и/или Canvas-эффектов, применённых к вашему изображению.
+  </div>
+
+</main>
+
+<script>
+  const FILTERS = [
+    {
+      id: 'original',
+      name: 'Original',
+      apply(ctx, w, h, img) {
+        ctx.filter = 'none';
+        ctx.drawImage(img, 0, 0, w, h);
+        ctx.filter = 'none';
+      }
+    },
+    {
+      id: 'inkwell',
+      name: 'Inkwell',
+      apply(ctx, w, h, img) {
+        ctx.filter = 'grayscale(100%) contrast(110%)';
+        ctx.drawImage(img, 0, 0, w, h);
+        ctx.filter = 'none';
+      }
+    },
+    {
+      id: 'nashville',
+      name: 'Nashville',
+      apply(ctx, w, h, img) {
+        ctx.filter = 'brightness(110%) contrast(90%) sepia(20%) saturate(120%)';
+        ctx.drawImage(img, 0, 0, w, h);
+        ctx.filter = 'none';
+        // Warm overlay
+        ctx.fillStyle = 'rgba(220,150,80,0.08)';
+        ctx.fillRect(0, 0, w, h);
+      }
+    },
+    {
+      id: 'valencia',
+      name: 'Valencia',
+      apply(ctx, w, h, img) {
+        ctx.filter = 'brightness(105%) saturate(120%) sepia(10%) contrast(105%)';
+        ctx.drawImage(img, 0, 0, w, h);
+        ctx.filter = 'none';
+      }
+    },
+    {
+      id: 'xpro2',
+      name: 'X-Pro II',
+      apply(ctx, w, h, img) {
+        ctx.filter = 'contrast(130%) saturate(120%)';
+        ctx.drawImage(img, 0, 0, w, h);
+        ctx.filter = 'none';
+        addVignette(ctx, w, h, 0.7);
+      }
+    },
+    {
+      id: 'lofi',
+      name: 'Lo-Fi',
+      apply(ctx, w, h, img) {
+        ctx.filter = 'saturate(130%) contrast(120%)';
+        ctx.drawImage(img, 0, 0, w, h);
+        ctx.filter = 'none';
+        addVignette(ctx, w, h, 0.6);
+      }
+    },
+    {
+      id: 'earlybird',
+      name: 'Earlybird',
+      apply(ctx, w, h, img) {
+        ctx.filter = 'sepia(30%) contrast(115%) brightness(95%)';
+        ctx.drawImage(img, 0, 0, w, h);
+        ctx.filter = 'none';
+        addVignette(ctx, w, h, 0.5);
+      }
+    },
+    {
+      id: '1977',
+      name: '1977',
+      apply(ctx, w, h, img) {
+        ctx.filter = 'hue-rotate(10deg) brightness(110%) contrast(90%)';
+        ctx.drawImage(img, 0, 0, w, h);
+        ctx.filter = 'none';
+        // Pink tint
+        ctx.fillStyle = 'rgba(243,106,188,0.1)';
+        ctx.fillRect(0, 0, w, h);
+      }
+    },
+    {
+      id: 'toaster',
+      name: 'Toaster',
+      apply(ctx, w, h, img) {
+        ctx.filter = 'contrast(150%) brightness(90%) saturate(130%)';
+        ctx.drawImage(img, 0, 0, w, h);
+        ctx.filter = 'none';
+        // Orange tint
+        ctx.fillStyle = 'rgba(255,160,40,0.12)';
+        ctx.fillRect(0, 0, w, h);
+        addVignette(ctx, w, h, 0.4);
+      }
+    },
+    {
+      id: 'walden',
+      name: 'Walden',
+      apply(ctx, w, h, img) {
+        ctx.filter = 'brightness(110%) hue-rotate(-10deg) sepia(30%) saturate(110%)';
+        ctx.drawImage(img, 0, 0, w, h);
+        ctx.filter = 'none';
+      }
+    }
+  ];
+
+  function addVignette(ctx, w, h, intensity) {
+    const cx = w / 2, cy = h / 2;
+    const innerR = Math.min(w, h) * 0.35;
+    const outerR = Math.sqrt(cx * cx + cy * cy);
+    const grad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, `rgba(0,0,0,${intensity})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  const fileInput   = document.getElementById('fileInput');
+  const uploadArea  = document.getElementById('uploadArea');
+  const canvas      = document.getElementById('canvas');
+  const placeholder = document.getElementById('placeholder');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const resetBtn    = document.getElementById('resetBtn');
+  const filterGrid  = document.getElementById('filterGrid');
+  const ctx         = canvas.getContext('2d');
+
+  let originalImage  = null;
+  let activeFilterId = 'original';
+  const thumbCanvases = {};
+
+  // Build filter gallery
+  FILTERS.forEach(f => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn' + (f.id === 'original' ? ' active' : '');
+    btn.dataset.id = f.id;
+
+    const thumbWrap = document.createElement('div');
+    thumbWrap.className = 'filter-thumb';
+    const tc = document.createElement('canvas');
+    tc.width = 100; tc.height = 100;
+    thumbCanvases[f.id] = tc;
+    thumbWrap.appendChild(tc);
+
+    const name = document.createElement('span');
+    name.className = 'filter-name';
+    name.textContent = f.name;
+
+    btn.appendChild(thumbWrap);
+    btn.appendChild(name);
+    btn.addEventListener('click', () => selectFilter(f.id));
+    filterGrid.appendChild(btn);
+  });
+
+  function selectFilter(id) {
+    activeFilterId = id;
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.id === id);
+    });
+    applyFilter();
+  }
+
+  uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+  uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) loadImage(file);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadImage(fileInput.files[0]); });
+
+  function loadImage(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        originalImage = img;
+        canvas.width  = img.width;
+        canvas.height = img.height;
+        updateThumbs();
+        applyFilter();
+        canvas.style.display   = 'block';
+        placeholder.style.display = 'none';
+        downloadBtn.disabled   = false;
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function updateThumbs() {
+    FILTERS.forEach(f => {
+      const tc = thumbCanvases[f.id];
+      const tctx = tc.getContext('2d');
+      tctx.clearRect(0, 0, 100, 100);
+      const img = originalImage;
+      const size = 100;
+      const scale = Math.max(size / img.width, size / img.height);
+      const sw = img.width * scale, sh = img.height * scale;
+      const sx = (size - sw) / 2, sy = (size - sh) / 2;
+
+      // Draw scaled source into temporary canvas
+      const tmp = document.createElement('canvas');
+      tmp.width = size; tmp.height = size;
+      const tmpCtx = tmp.getContext('2d');
+      tmpCtx.drawImage(img, sx, sy, sw, sh);
+
+      // Create image from temp canvas
+      const scaledImg = new Image();
+      scaledImg.onload = () => {
+        tctx.clearRect(0, 0, size, size);
+        f.apply(tctx, size, size, scaledImg);
+      };
+      scaledImg.src = tmp.toDataURL();
+    });
+  }
+
+  function applyFilter() {
+    if (!originalImage) return;
+    const f = FILTERS.find(x => x.id === activeFilterId);
+    if (!f) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    f.apply(ctx, canvas.width, canvas.height, originalImage);
+  }
+
+  downloadBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = `instagram-${activeFilterId}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    selectFilter('original');
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Виньетка — Photo Tools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f4f6fb;
+      --surface: #ffffff;
+      --primary: #5b6ef5;
+      --primary-dark: #3e54e8;
+      --text: #1e2340;
+      --muted: #6b7280;
+      --border: #e5e7ef;
+      --radius: 16px;
+      --shadow: 0 4px 24px rgba(91,110,245,.12);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .back-link {
+      text-decoration: none;
+      color: var(--primary);
+      font-size: .9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity .15s;
+    }
+    .back-link:hover { opacity: .7; }
+    .topbar-title { font-size: .95rem; font-weight: 600; color: var(--muted); }
+
+    .hero {
+      background: linear-gradient(135deg, #1e2340 0%, #5b6ef5 100%);
+      color: #fff;
+      padding: 36px 24px 32px;
+      text-align: center;
+    }
+    .hero-icon { font-size: 3rem; line-height: 1; }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; margin-top: 10px; }
+    .hero p { margin-top: 8px; opacity: .85; font-size: .97rem; max-width: 480px; margin-inline: auto; }
+
+    main {
+      flex: 1;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .card h2 {
+      font-size: .78rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+    .upload-area:hover, .upload-area.drag-over { border-color: var(--primary); background: #f0f2ff; }
+    .upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-icon { font-size: 2.5rem; }
+    .upload-area h3 { font-size: 1rem; font-weight: 700; margin-top: 10px; }
+    .upload-area p { font-size: .85rem; color: var(--muted); margin-top: 4px; }
+
+    .canvas-wrap {
+      background: repeating-conic-gradient(#e5e7ef 0% 25%, #fff 0% 50%) 0 0 / 20px 20px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+    }
+    canvas { max-width: 100%; max-height: 60vh; display: block; border-radius: 8px; }
+    .canvas-placeholder { color: var(--muted); font-size: .9rem; padding: 40px; text-align: center; }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .control-row:last-of-type { margin-bottom: 0; }
+    .control-row label { font-size: .9rem; font-weight: 600; min-width: 120px; }
+    .slider-wrap { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 200px; }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--border);
+      border-radius: 100px;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: 2px solid #fff;
+      box-shadow: 0 2px 6px rgba(91,110,245,.4);
+      cursor: pointer;
+      transition: transform .15s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    input[type="range"]::-moz-range-thumb {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: 2px solid #fff;
+      cursor: pointer;
+    }
+    .value-badge {
+      background: var(--primary);
+      color: #fff;
+      font-size: .8rem;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 100px;
+      min-width: 54px;
+      text-align: center;
+    }
+
+    .color-opts { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .color-btn {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color .15s;
+      font-family: inherit;
+    }
+    .color-btn.active { border-color: var(--primary); background: #eff2ff; color: var(--primary); }
+    input[type="color"] {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      padding: 2px;
+      background: none;
+    }
+
+    .shape-opts { display: flex; gap: 10px; }
+    .shape-btn {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color .15s;
+      font-family: inherit;
+    }
+    .shape-btn.active { border-color: var(--primary); background: #eff2ff; color: var(--primary); }
+
+    .btn-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: transform .15s, box-shadow .15s, opacity .15s;
+    }
+    .btn:disabled { opacity: .4; pointer-events: none; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(91,110,245,.35); }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-ghost { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+
+    .info-box {
+      background: #eff2ff;
+      border: 1px solid #c7d0fe;
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: .85rem;
+      color: #3730a3;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="topbar">
+  <a class="back-link" href="../../index.html">← Все инструменты</a>
+  <span style="color:var(--border)">|</span>
+  <span class="topbar-title">15 — Виньетка</span>
+</nav>
+
+<div class="hero">
+  <div class="hero-icon">🎭</div>
+  <h1>Виньетка</h1>
+  <p>Затемнение или осветление краёв изображения с настройкой интенсивности, радиуса и цвета</p>
+</div>
+
+<main>
+
+  <div class="card">
+    <h2>📂 Загрузка изображения</h2>
+    <div class="upload-area" id="uploadArea">
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" />
+      <div class="upload-icon">🖼️</div>
+      <h3>Нажмите или перетащите изображение</h3>
+      <p>Поддерживаются форматы JPG, PNG, WebP</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🖼 Результат</h2>
+    <div class="canvas-wrap">
+      <div class="canvas-placeholder" id="placeholder">Загрузите изображение, чтобы увидеть результат</div>
+      <canvas id="canvas" style="display:none"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🎛 Управление</h2>
+
+    <div class="control-row">
+      <label for="intensity">Интенсивность</label>
+      <div class="slider-wrap">
+        <span style="font-size:.8rem;color:var(--muted)">0%</span>
+        <input type="range" id="intensity" min="0" max="100" value="60" />
+        <span style="font-size:.8rem;color:var(--muted)">100%</span>
+      </div>
+      <div class="value-badge" id="intensityBadge">60%</div>
+    </div>
+
+    <div class="control-row">
+      <label for="radius">Радиус</label>
+      <div class="slider-wrap">
+        <span style="font-size:.8rem;color:var(--muted)">10%</span>
+        <input type="range" id="radius" min="10" max="90" value="50" />
+        <span style="font-size:.8rem;color:var(--muted)">90%</span>
+      </div>
+      <div class="value-badge" id="radiusBadge">50%</div>
+    </div>
+
+    <div class="control-row">
+      <label for="softness">Мягкость</label>
+      <div class="slider-wrap">
+        <span style="font-size:.8rem;color:var(--muted)">0%</span>
+        <input type="range" id="softness" min="0" max="100" value="50" />
+        <span style="font-size:.8rem;color:var(--muted)">100%</span>
+      </div>
+      <div class="value-badge" id="softnessBadge">50%</div>
+    </div>
+
+    <div class="control-row">
+      <label>Цвет</label>
+      <div class="color-opts">
+        <button class="color-btn active" data-color="black">⬛ Чёрная</button>
+        <button class="color-btn" data-color="white">⬜ Белая</button>
+        <button class="color-btn" data-color="custom">🎨 Свой цвет</button>
+        <input type="color" id="customColor" value="#000000" title="Выбрать цвет" />
+      </div>
+    </div>
+
+    <div class="control-row">
+      <label>Форма</label>
+      <div class="shape-opts">
+        <button class="shape-btn active" data-shape="ellipse">⭕ Эллипс</button>
+        <button class="shape-btn" data-shape="rect">▭ Прямоугольник</button>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:20px">
+      <button class="btn btn-primary" id="downloadBtn" disabled>⬇️ Скачать</button>
+      <button class="btn btn-ghost" id="resetBtn">↺ Сброс</button>
+    </div>
+  </div>
+
+  <div class="info-box">
+    💡 <strong>Как работает:</strong> поверх изображения рисуется radial gradient от прозрачного центра к выбранному цвету по краям. Радиус контролирует, где начинается затемнение, а мягкость — насколько плавным будет переход.
+  </div>
+
+</main>
+
+<script>
+  const fileInput    = document.getElementById('fileInput');
+  const uploadArea   = document.getElementById('uploadArea');
+  const canvas       = document.getElementById('canvas');
+  const placeholder  = document.getElementById('placeholder');
+  const downloadBtn  = document.getElementById('downloadBtn');
+  const resetBtn     = document.getElementById('resetBtn');
+  const intensityEl  = document.getElementById('intensity');
+  const radiusEl     = document.getElementById('radius');
+  const softnessEl   = document.getElementById('softness');
+  const customColor  = document.getElementById('customColor');
+  const ctx          = canvas.getContext('2d');
+
+  let originalImage = null;
+  let vignetteColor = 'black';
+  let vignetteShape = 'ellipse';
+
+  // Slider badges
+  function bindSlider(el, badgeId, suffix) {
+    const badge = document.getElementById(badgeId);
+    el.addEventListener('input', () => { badge.textContent = el.value + suffix; applyVignette(); });
+  }
+  bindSlider(intensityEl, 'intensityBadge', '%');
+  bindSlider(radiusEl,    'radiusBadge',    '%');
+  bindSlider(softnessEl,  'softnessBadge',  '%');
+
+  // Color buttons
+  document.querySelectorAll('.color-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      vignetteColor = btn.dataset.color;
+      applyVignette();
+    });
+  });
+  customColor.addEventListener('input', () => {
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-color="custom"]').classList.add('active');
+    vignetteColor = 'custom';
+    applyVignette();
+  });
+
+  // Shape buttons
+  document.querySelectorAll('.shape-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      vignetteShape = btn.dataset.shape;
+      applyVignette();
+    });
+  });
+
+  // Drag & drop
+  uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+  uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) loadImage(file);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadImage(fileInput.files[0]); });
+
+  function loadImage(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        originalImage = img;
+        canvas.width  = img.width;
+        canvas.height = img.height;
+        applyVignette();
+        canvas.style.display      = 'block';
+        placeholder.style.display = 'none';
+        downloadBtn.disabled      = false;
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function getColor() {
+    const alpha = intensityEl.value / 100;
+    if (vignetteColor === 'black')  return [`rgba(0,0,0,${alpha})`, `rgba(0,0,0,0)`];
+    if (vignetteColor === 'white')  return [`rgba(255,255,255,${alpha})`, `rgba(255,255,255,0)`];
+    // custom
+    const hex = customColor.value;
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return [`rgba(${r},${g},${b},${alpha})`, `rgba(${r},${g},${b},0)`];
+  }
+
+  function applyVignette() {
+    if (!originalImage) return;
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(originalImage, 0, 0);
+
+    const radiusPct  = radiusEl.value / 100;
+    const softPct    = softnessEl.value / 100;
+    const [colorOut, colorIn] = getColor();
+
+    if (vignetteShape === 'ellipse') {
+      const cx = w / 2, cy = h / 2;
+      // inner radius in pixels (where vignette starts)
+      const innerR = Math.min(w, h) * radiusPct * (1 - softPct * 0.4);
+      const outerR = Math.sqrt(cx * cx + cy * cy);
+
+      // Scale canvas to make radial gradient elliptical
+      ctx.save();
+      ctx.scale(w / Math.min(w, h), h / Math.min(w, h));
+      const scx = (Math.min(w, h) / 2);
+      const grad = ctx.createRadialGradient(scx, scx, innerR, scx, scx, outerR);
+      grad.addColorStop(0, colorIn);
+      grad.addColorStop(1, colorOut);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, Math.min(w, h), Math.min(w, h));
+      ctx.restore();
+    } else {
+      // Rectangular vignette via multiple layered gradients
+      const gTop = ctx.createLinearGradient(0, 0, 0, h * (1 - radiusPct));
+      gTop.addColorStop(0, colorOut);
+      gTop.addColorStop(1, colorIn);
+      ctx.fillStyle = gTop;
+      ctx.fillRect(0, 0, w, h * (1 - radiusPct));
+
+      const gBot = ctx.createLinearGradient(0, h, 0, h * radiusPct);
+      gBot.addColorStop(0, colorOut);
+      gBot.addColorStop(1, colorIn);
+      ctx.fillStyle = gBot;
+      ctx.fillRect(0, h * radiusPct, w, h * (1 - radiusPct));
+
+      const gLeft = ctx.createLinearGradient(0, 0, w * (1 - radiusPct), 0);
+      gLeft.addColorStop(0, colorOut);
+      gLeft.addColorStop(1, colorIn);
+      ctx.fillStyle = gLeft;
+      ctx.fillRect(0, 0, w * (1 - radiusPct), h);
+
+      const gRight = ctx.createLinearGradient(w, 0, w * radiusPct, 0);
+      gRight.addColorStop(0, colorOut);
+      gRight.addColorStop(1, colorIn);
+      ctx.fillStyle = gRight;
+      ctx.fillRect(w * radiusPct, 0, w * (1 - radiusPct), h);
+    }
+  }
+
+  downloadBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = 'vignette.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    intensityEl.value = 60; document.getElementById('intensityBadge').textContent = '60%';
+    radiusEl.value    = 50; document.getElementById('radiusBadge').textContent    = '50%';
+    softnessEl.value  = 50; document.getElementById('softnessBadge').textContent  = '50%';
+    vignetteColor = 'black';
+    vignetteShape = 'ellipse';
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.toggle('active', b.dataset.color === 'black'));
+    document.querySelectorAll('.shape-btn').forEach(b => b.classList.toggle('active', b.dataset.shape === 'ellipse'));
+    applyVignette();
+  });
+</script>
+</body>
+</html>
