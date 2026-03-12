@@ -42,6 +42,7 @@
 | 18 | [HDR эффект](tools/18-hdr-effect/index.html) | Расширенный динамический диапазон | Tone mapping |
 | 19 | [Пиксель-арт](tools/19-pixel-art/index.html) | Конвертация в пиксельную графику | Color quantization + dithering |
 | 20 | [Коллаж](tools/20-collage/index.html) | Объединение нескольких фото | Multiple image loading |
+| 21 | [Удаление фона по виньетке](tools/21-vignette-background-removal/index.html) | Прозрачный фон за пределами круга/эллипса | Radial mask + alpha channel |
 
 ## 📖 Как использовать
 
@@ -104,7 +105,9 @@ Photo-Tools/
     │   └── index.html
     ├── 19-pixel-art/
     │   └── index.html
-    └── 20-collage/
+    ├── 20-collage/
+    │   └── index.html
+    └── 21-vignette-background-removal/
         └── index.html
 ```
 
