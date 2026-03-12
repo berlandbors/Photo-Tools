@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Пиксель-арт — Photo Tools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f4f6fb;
+      --surface: #ffffff;
+      --primary: #5b6ef5;
+      --primary-dark: #3e54e8;
+      --text: #1e2340;
+      --muted: #6b7280;
+      --border: #e5e7ef;
+      --radius: 16px;
+      --shadow: 0 4px 24px rgba(91,110,245,.12);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 12px 24px; display: flex; align-items: center; gap: 12px;
+    }
+    .back-link {
+      text-decoration: none; color: var(--primary); font-size: .9rem; font-weight: 600;
+      display: flex; align-items: center; gap: 6px; transition: opacity .15s;
+    }
+    .back-link:hover { opacity: .7; }
+    .topbar-title { font-size: .95rem; font-weight: 600; color: var(--muted); }
+
+    .hero {
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      color: #fff; padding: 36px 24px 32px; text-align: center;
+    }
+    .hero-icon { font-size: 3rem; line-height: 1; }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; margin-top: 10px; }
+    .hero p { margin-top: 8px; opacity: .85; font-size: .97rem; max-width: 480px; margin-inline: auto; }
+
+    main {
+      flex: 1; max-width: 900px; width: 100%;
+      margin: 0 auto; padding: 32px 24px 64px;
+      display: flex; flex-direction: column; gap: 24px;
+    }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow);
+    }
+    .card h2 {
+      font-size: .78rem; font-weight: 700; margin-bottom: 16px;
+      color: var(--muted); text-transform: uppercase; letter-spacing: .06em;
+    }
+
+    .upload-area {
+      border: 2px dashed var(--border); border-radius: 12px; padding: 40px 20px;
+      text-align: center; cursor: pointer; transition: border-color .2s, background .2s; position: relative;
+    }
+    .upload-area:hover, .upload-area.drag-over { border-color: var(--primary); background: #f0f2ff; }
+    .upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-icon { font-size: 2.5rem; }
+    .upload-area h3 { font-size: 1rem; font-weight: 700; margin-top: 10px; }
+    .upload-area p { font-size: .85rem; color: var(--muted); margin-top: 4px; }
+
+    .canvas-wrap {
+      background: repeating-conic-gradient(#e5e7ef 0% 25%, #fff 0% 50%) 0 0 / 20px 20px;
+      border-radius: 12px; overflow: hidden;
+      display: flex; align-items: center; justify-content: center; min-height: 200px;
+    }
+    canvas { max-width: 100%; max-height: 60vh; display: block; border-radius: 8px; image-rendering: pixelated; }
+    .canvas-placeholder { color: var(--muted); font-size: .9rem; padding: 40px; text-align: center; }
+
+    .control-row {
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .control-row:last-of-type { margin-bottom: 0; }
+    .control-row label { font-size: .9rem; font-weight: 600; min-width: 140px; }
+    .slider-wrap { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 200px; }
+    input[type="range"] {
+      -webkit-appearance: none; width: 100%; height: 6px;
+      background: var(--border); border-radius: 100px; outline: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+      background: var(--primary); border: 2px solid #fff; box-shadow: 0 2px 6px rgba(91,110,245,.4);
+      cursor: pointer; transition: transform .15s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    input[type="range"]::-moz-range-thumb {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--primary); border: 2px solid #fff; cursor: pointer;
+    }
+    .value-badge {
+      background: var(--primary); color: #fff; font-size: .8rem; font-weight: 700;
+      padding: 2px 10px; border-radius: 100px; min-width: 54px; text-align: center;
+    }
+
+    .palette-opts { display: flex; gap: 10px; flex-wrap: wrap; }
+    .palette-btn {
+      padding: 7px 14px; border-radius: 8px; border: 2px solid var(--border);
+      background: var(--bg); font-size: .82rem; font-weight: 600; cursor: pointer;
+      transition: border-color .15s; font-family: inherit;
+    }
+    .palette-btn.active { border-color: var(--primary); background: #eff2ff; color: var(--primary); }
+
+    .dither-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .dither-row label { font-size: .9rem; font-weight: 600; }
+    input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
+
+    .btn-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 10px; font-size: .9rem; font-weight: 600;
+      cursor: pointer; border: none; transition: transform .15s, box-shadow .15s, opacity .15s;
+    }
+    .btn:disabled { opacity: .4; pointer-events: none; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(91,110,245,.35); }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-ghost { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+
+    .info-box {
+      background: #eff2ff; border: 1px solid #c7d0fe;
+      border-radius: 10px; padding: 14px 18px; font-size: .85rem; color: #3730a3; line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="topbar">
+  <a class="back-link" href="../../index.html">← Все инструменты</a>
+  <span style="color:var(--border)">|</span>
+  <span class="topbar-title">19 — Пиксель-арт</span>
+</nav>
+
+<div class="hero">
+  <div class="hero-icon">🎮</div>
+  <h1>Пиксель-арт конвертер</h1>
+  <p>Превратите любое фото в пиксельную графику с дизерингом и ретро-палитрами</p>
+</div>
+
+<main>
+
+  <div class="card">
+    <h2>📂 Загрузка изображения</h2>
+    <div class="upload-area" id="uploadArea">
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" />
+      <div class="upload-icon">🖼️</div>
+      <h3>Нажмите или перетащите изображение</h3>
+      <p>Поддерживаются форматы JPG, PNG, WebP</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🖼 Результат</h2>
+    <div class="canvas-wrap">
+      <div class="canvas-placeholder" id="placeholder">Загрузите изображение, чтобы увидеть результат</div>
+      <canvas id="canvas" style="display:none"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🎛 Управление</h2>
+
+    <!-- Pixel size -->
+    <div class="control-row">
+      <label for="pixelSize">Размер пикселя</label>
+      <div class="slider-wrap">
+        <span style="font-size:.8rem;color:var(--muted)">2×</span>
+        <input type="range" id="pixelSize" min="0" max="5" value="2" />
+        <span style="font-size:.8rem;color:var(--muted)">64×</span>
+      </div>
+      <div class="value-badge" id="pixelSizeBadge">8×</div>
+    </div>
+
+    <!-- Colors -->
+    <div class="control-row">
+      <label for="numColors">Количество цветов</label>
+      <div class="slider-wrap">
+        <span style="font-size:.8rem;color:var(--muted)">2</span>
+        <input type="range" id="numColors" min="2" max="32" value="16" />
+        <span style="font-size:.8rem;color:var(--muted)">32</span>
+      </div>
+      <div class="value-badge" id="numColorsBadge">16</div>
+    </div>
+
+    <!-- Palette -->
+    <div class="control-row">
+      <label>Палитра</label>
+      <div class="palette-opts">
+        <button class="palette-btn active" data-palette="auto">🎨 Авто</button>
+        <button class="palette-btn" data-palette="nes">🕹️ NES</button>
+        <button class="palette-btn" data-palette="gameboy">👾 Game Boy</button>
+        <button class="palette-btn" data-palette="c64">💾 C64</button>
+        <button class="palette-btn" data-palette="mono">🌑 Монохром</button>
+      </div>
+    </div>
+
+    <!-- Dithering -->
+    <div class="dither-row">
+      <input type="checkbox" id="dithering" checked />
+      <label for="dithering">🔀 Дизеринг Floyd–Steinberg</label>
+    </div>
+
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn btn-primary" id="applyBtn" disabled>🎮 Применить</button>
+      <button class="btn btn-ghost" id="downloadBtn" disabled>⬇️ Скачать</button>
+      <button class="btn btn-ghost" id="resetBtn">↺ Сброс</button>
+    </div>
+  </div>
+
+  <div class="info-box">
+    💡 <strong>Как работает:</strong> изображение уменьшается в N раз с отключённым сглаживанием, затем применяется квантизация цветов методом median cut и опционально дизеринг Floyd–Steinberg. Результат масштабируется обратно с <code>nearest-neighbor</code> интерполяцией для чётких пикселей.
+  </div>
+
+</main>
+
+<script>
+  const PIXEL_SIZES = [2, 4, 8, 16, 32, 64];
+
+  // Predefined palettes
+  const PALETTES = {
+    nes: [
+      [0,0,0],[124,124,124],[0,0,252],[0,0,188],[68,40,188],[148,0,132],[168,0,32],[168,16,0],
+      [136,20,0],[80,48,0],[0,120,0],[0,104,0],[0,88,0],[0,64,88],[0,0,0],[0,0,0],
+      [188,188,188],[0,120,248],[0,88,248],[104,68,252],[216,0,204],[228,0,88],[248,56,0],[228,92,16],
+      [172,124,0],[0,184,0],[0,168,0],[0,168,68],[0,136,136],[0,0,0],[0,0,0],[0,0,0],
+      [248,248,248],[60,188,252],[104,136,252],[152,120,248],[248,120,248],[248,88,152],[248,120,88],[252,160,68],
+      [248,184,0],[184,248,24],[88,216,84],[88,248,152],[0,232,216],[120,120,120],[0,0,0],[0,0,0]
+    ],
+    gameboy: [
+      [15,56,15],[48,98,48],[139,172,15],[155,188,15]
+    ],
+    c64: [
+      [0,0,0],[255,255,255],[136,0,0],[170,255,238],[204,68,204],[0,204,85],[0,0,170],
+      [238,238,119],[221,136,85],[102,68,0],[255,119,119],[51,51,51],[119,119,119],
+      [170,255,102],[0,136,255],[187,187,187]
+    ],
+    mono: null // generated from greyscale
+  };
+
+  const fileInput    = document.getElementById('fileInput');
+  const uploadArea   = document.getElementById('uploadArea');
+  const canvas       = document.getElementById('canvas');
+  const placeholder  = document.getElementById('placeholder');
+  const applyBtn     = document.getElementById('applyBtn');
+  const downloadBtn  = document.getElementById('downloadBtn');
+  const resetBtn     = document.getElementById('resetBtn');
+  const pixelSizeEl  = document.getElementById('pixelSize');
+  const numColorsEl  = document.getElementById('numColors');
+  const ditheringEl  = document.getElementById('dithering');
+  const ctx          = canvas.getContext('2d');
+
+  let originalImage  = null;
+  let activePalette  = 'auto';
+
+  pixelSizeEl.addEventListener('input', () => {
+    document.getElementById('pixelSizeBadge').textContent = PIXEL_SIZES[pixelSizeEl.value] + '×';
+  });
+  numColorsEl.addEventListener('input', () => {
+    document.getElementById('numColorsBadge').textContent = numColorsEl.value;
+  });
+
+  document.querySelectorAll('.palette-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.palette-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activePalette = btn.dataset.palette;
+    });
+  });
+
+  uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+  uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) loadImage(file);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadImage(fileInput.files[0]); });
+
+  function loadImage(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        originalImage = img;
+        canvas.width  = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        canvas.style.display      = 'block';
+        placeholder.style.display = 'none';
+        applyBtn.disabled         = false;
+        downloadBtn.disabled      = true;
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  applyBtn.addEventListener('click', applyPixelArt);
+
+  function applyPixelArt() {
+    if (!originalImage) return;
+    const blockSize = PIXEL_SIZES[pixelSizeEl.value];
+    const numColors = parseInt(numColorsEl.value);
+    const dither    = ditheringEl.checked;
+    const W = originalImage.width, H = originalImage.height;
+
+    // Step 1: downscale
+    const smallW = Math.max(1, Math.floor(W / blockSize));
+    const smallH = Math.max(1, Math.floor(H / blockSize));
+    const tmp = document.createElement('canvas');
+    tmp.width = smallW; tmp.height = smallH;
+    const tmpCtx = tmp.getContext('2d');
+    tmpCtx.imageSmoothingEnabled = false;
+    tmpCtx.drawImage(originalImage, 0, 0, smallW, smallH);
+
+    let imageData = tmpCtx.getImageData(0, 0, smallW, smallH);
+
+    // Step 2: build palette
+    let palette;
+    if (activePalette === 'auto') {
+      palette = medianCut(imageData.data, smallW * smallH, numColors);
+    } else if (activePalette === 'mono') {
+      palette = [];
+      for (let i = 0; i < numColors; i++) {
+        const v = Math.round(i / (numColors - 1) * 255);
+        palette.push([v, v, v]);
+      }
+    } else {
+      palette = PALETTES[activePalette];
+    }
+
+    // Step 3: quantize (+ optional dithering)
+    const data = imageData.data;
+    if (dither) {
+      floydSteinberg(data, smallW, smallH, palette);
+    } else {
+      for (let i = 0; i < data.length; i += 4) {
+        const [r, g, b] = nearestColor(data[i], data[i+1], data[i+2], palette);
+        data[i] = r; data[i+1] = g; data[i+2] = b;
+      }
+    }
+    tmpCtx.putImageData(imageData, 0, 0);
+
+    // Step 4: upscale with nearest-neighbor
+    ctx.imageSmoothingEnabled = false;
+    canvas.width  = W;
+    canvas.height = H;
+    ctx.drawImage(tmp, 0, 0, W, H);
+    downloadBtn.disabled = false;
+  }
+
+  function nearestColor(r, g, b, palette) {
+    let best = palette[0], bestDist = Infinity;
+    for (const c of palette) {
+      const d = (r-c[0])**2 + (g-c[1])**2 + (b-c[2])**2;
+      if (d < bestDist) { bestDist = d; best = c; }
+    }
+    return best;
+  }
+
+  function floydSteinberg(data, w, h, palette) {
+    const err = new Float32Array(w * h * 3);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        const ei = (y * w + x) * 3;
+        const or = clamp(data[i]   + err[ei]);
+        const og = clamp(data[i+1] + err[ei+1]);
+        const ob = clamp(data[i+2] + err[ei+2]);
+        const [nr, ng, nb] = nearestColor(or, og, ob, palette);
+        data[i] = nr; data[i+1] = ng; data[i+2] = nb;
+        const er = or - nr, eg = og - ng, eb = ob - nb;
+        distributeErr(err, w, h, x+1, y,   er*7/16, eg*7/16, eb*7/16);
+        distributeErr(err, w, h, x-1, y+1, er*3/16, eg*3/16, eb*3/16);
+        distributeErr(err, w, h, x,   y+1, er*5/16, eg*5/16, eb*5/16);
+        distributeErr(err, w, h, x+1, y+1, er*1/16, eg*1/16, eb*1/16);
+      }
+    }
+  }
+
+  function distributeErr(err, w, h, x, y, er, eg, eb) {
+    if (x < 0 || x >= w || y < 0 || y >= h) return;
+    const i = (y * w + x) * 3;
+    err[i]   += er;
+    err[i+1] += eg;
+    err[i+2] += eb;
+  }
+
+  function clamp(v) { return Math.max(0, Math.min(255, Math.round(v))); }
+
+  // Median cut color quantization
+  function medianCut(data, count, numColors) {
+    const pixels = [];
+    for (let i = 0; i < count; i++) {
+      pixels.push([data[i*4], data[i*4+1], data[i*4+2]]);
+    }
+    const buckets = [pixels];
+    while (buckets.length < numColors) {
+      // Split the largest bucket
+      let maxRange = -1, splitIdx = 0;
+      buckets.forEach((b, idx) => {
+        const range = colorRange(b);
+        if (range > maxRange) { maxRange = range; splitIdx = idx; }
+      });
+      const bucket = buckets.splice(splitIdx, 1)[0];
+      const ch = dominantChannel(bucket);
+      bucket.sort((a, b) => a[ch] - b[ch]);
+      const mid = Math.floor(bucket.length / 2);
+      buckets.push(bucket.slice(0, mid));
+      buckets.push(bucket.slice(mid));
+    }
+    return buckets.map(b => {
+      const n = b.length || 1;
+      return [
+        Math.round(b.reduce((s,c) => s+c[0], 0) / n),
+        Math.round(b.reduce((s,c) => s+c[1], 0) / n),
+        Math.round(b.reduce((s,c) => s+c[2], 0) / n)
+      ];
+    });
+  }
+
+  function colorRange(pixels) {
+    let rMin=255,rMax=0,gMin=255,gMax=0,bMin=255,bMax=0;
+    for (const [r,g,b] of pixels) {
+      if (r<rMin)rMin=r; if (r>rMax)rMax=r;
+      if (g<gMin)gMin=g; if (g>gMax)gMax=g;
+      if (b<bMin)bMin=b; if (b>bMax)bMax=b;
+    }
+    return Math.max(rMax-rMin, gMax-gMin, bMax-bMin);
+  }
+
+  function dominantChannel(pixels) {
+    let rMin=255,rMax=0,gMin=255,gMax=0,bMin=255,bMax=0;
+    for (const [r,g,b] of pixels) {
+      if (r<rMin)rMin=r; if (r>rMax)rMax=r;
+      if (g<gMin)gMin=g; if (g>gMax)gMax=g;
+      if (b<bMin)bMin=b; if (b>bMax)bMax=b;
+    }
+    const rR=rMax-rMin, gR=gMax-gMin, bR=bMax-bMin;
+    if (rR>=gR&&rR>=bR) return 0;
+    if (gR>=bR) return 1;
+    return 2;
+  }
+
+  downloadBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = 'pixel-art.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (!originalImage) return;
+    ctx.imageSmoothingEnabled = true;
+    canvas.width  = originalImage.width;
+    canvas.height = originalImage.height;
+    ctx.drawImage(originalImage, 0, 0);
+    downloadBtn.disabled = true;
+  });
+</script>
+</body>
+</html>

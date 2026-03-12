@@ -31,11 +31,17 @@
 | 12 | [Насыщенность](tools/12-saturation/index.html) | Регулировка насыщенности цветов (0-200%) | `filter: saturate()` |
 | 13 | [Оттенок](tools/13-hue/index.html) | Сдвиг цветового тона (0-360°) | `filter: hue-rotate()` |
 
-### Сложные *(скоро)*
+### Сложные
 
-- Instagram-стиль фильтры
-- Рисование и аннотации
-- Виньетка
+| # | Инструмент | Описание | Технология |
+|---|-----------|----------|------------|
+| 14 | [Instagram-фильтры](tools/14-instagram-filters/index.html) | 10 готовых фильтров в стиле Instagram | Комбинации CSS filters |
+| 15 | [Виньетка](tools/15-vignette/index.html) | Затемнение/осветление по краям | Radial gradient |
+| 16 | [Рисование](tools/16-draw-annotate/index.html) | Кисть, текст, фигуры, аннотации | Mouse events + Canvas |
+| 17 | [Удаление фона](tools/17-background-removal/index.html) | Удаление фона по цвету | Pixel manipulation |
+| 18 | [HDR эффект](tools/18-hdr-effect/index.html) | Расширенный динамический диапазон | Tone mapping |
+| 19 | [Пиксель-арт](tools/19-pixel-art/index.html) | Конвертация в пиксельную графику | Color quantization + dithering |
+| 20 | [Коллаж](tools/20-collage/index.html) | Объединение нескольких фото | Multiple image loading |
 
 ## 📖 Как использовать
 
@@ -84,7 +90,21 @@ Photo-Tools/
     │   └── index.html
     ├── 12-saturation/
     │   └── index.html
-    └── 13-hue/
+    ├── 13-hue/
+    │   └── index.html
+    ├── 14-instagram-filters/
+    │   └── index.html
+    ├── 15-vignette/
+    │   └── index.html
+    ├── 16-draw-annotate/
+    │   └── index.html
+    ├── 17-background-removal/
+    │   └── index.html
+    ├── 18-hdr-effect/
+    │   └── index.html
+    ├── 19-pixel-art/
+    │   └── index.html
+    └── 20-collage/
         └── index.html
 ```
 
